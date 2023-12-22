@@ -1,0 +1,32 @@
+{
+    "name": "Physmos",
+    "version": "1.0.0",
+    "description": "",
+    "license": "MIT",
+    "repository": "",
+    "main": "main.js",
+    "author": {
+        "name": "Chang-Mao Yang",
+        "email": "jeffrey0613mao@gmail.com",
+        "url": ""
+    },
+    "build": {
+        "icon": "build/icon.icns"
+    },
+    "scripts": {
+        "start": "electron .",
+        "clearhistory": "node clearhistory.js",
+        "icon": "./node_modules/.bin/electron-icon-builder --input=./icon/icon.png --output=./icon & cp ./icon/icons/mac/icon.icns ./build/icon.icns;",
+        "pack": "electron-builder --dir",
+        "dist": "electron-builder --macos",
+        "win": "electron-builder --windows"
+    },
+    "devDependencies": {
+        "electron": "^26.2.3",
+        "electron-builder": "^24.6.4",
+        "electron-icon-builder": "^2.0.1",
+        "electron-reloader": "^1.2.3",
+        "eslint": "^8.25.0",
+        "eslint-config-google": "^0.14.0"
+    }
+}
