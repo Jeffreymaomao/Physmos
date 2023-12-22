@@ -18,8 +18,9 @@
         "clearhistory": "node clearhistory.js",
         "icon": "./node_modules/.bin/electron-icon-builder --input=./icon/icon.png --output=./icon & cp ./icon/icons/mac/icon.icns ./build/icon.icns;",
         "pack": "electron-builder --dir",
-        "dist": "electron-builder --macos",
-        "win": "electron-builder --windows"
+        "dist": "electron-builder",
+        "dist-mac": "electron-builder --macos",
+        "dist-win": "electron-builder --windows"
     },
     "devDependencies": {
         "electron": "^26.2.3",
