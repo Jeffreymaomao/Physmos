@@ -1,19 +1,16 @@
-const { app, BrowserWindow, ipcMain, screen, remote, clipboard, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, remote, nativeImage,  Menu, shell } = require('electron');
 const path = require('path');
 const pkg = require('./package.json');
 const util = require('util');
 const fs = require('fs');
 
-process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
-
-app.setAboutPanelOptions({
-    applicationName: pkg.name,
-    applicationVersion: pkg.version,
-    version: "dev",
-});
-
 try {require('electron-reloader')(module);} catch {}
 
+process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
+
+const menuTemplate = require('./app/menuTemplate');
+// const menu = Menu.buildFromTemplate(menuTemplate);
+// Menu.setApplicationMenu(menu);
 
 
 let mainWindow;
@@ -48,6 +45,8 @@ const createNewWindow = async () => {
     });
     win.on('ready-to-show', () => {
         win.show();
+        const menu = Menu.buildFromTemplate(menuTemplate);
+        Menu.setApplicationMenu(menu);
     });
     win.on('closed', () => {
         windows = windows.filter(w => w !== win);
@@ -56,13 +55,16 @@ const createNewWindow = async () => {
     windows.push(win);
     return win;
 };
-
+app.setAboutPanelOptions({applicationName: pkg.name,applicationVersion: pkg.version,version: "dev",});
 app.on('window-all-closed', function() {app.quit()});
 app.on('activate', async () => { if (mainWindow === null) createNewWindow()});
 app.whenReady().then(() => {mainWindow = createNewWindow();});
 
 ipcMain.handle('open-new-window', () => {createNewWindow();});
 ipcMain.handle('get-user-data-path', async () => {return app.getPath('userData');});
+
+
+
 
 
 
