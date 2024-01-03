@@ -9,9 +9,6 @@ try {require('electron-reloader')(module);} catch {}
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 const menuTemplate = require('./app/menuTemplate');
-// const menu = Menu.buildFromTemplate(menuTemplate);
-// Menu.setApplicationMenu(menu);
-
 
 let mainWindow;
 let windows = [];
@@ -62,8 +59,14 @@ app.whenReady().then(() => {mainWindow = createNewWindow();});
 
 ipcMain.handle('open-new-window', () => {createNewWindow();});
 ipcMain.handle('get-user-data-path', async () => {return app.getPath('userData');});
-
-
+// ipcMain.handle('set-title', (event, title) => {
+//     console.log(title);
+//     const webContents = event.sender;
+//     const win = BrowserWindow.fromWebContents(webContents);
+//     if (win) {
+//         win.setTitle(title);
+//     }
+// });
 
 
 
