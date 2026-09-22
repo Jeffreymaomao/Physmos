@@ -105,13 +105,63 @@ test('Electron Desmos works offline, saves, restores and opens history', {timeou
         assert.match(version, /^v?1\.13/);
         assert.equal(await evaluate('typeof window.electron.readFile'), 'function');
         assert.equal(await evaluate('document.querySelectorAll(".dcg-calculator-api-container-v1_13").length > 0'), true);
+        assert.equal(await evaluate(`(async () => {
+            const pending = waitForElement('.wait-for-element-smoke');
+            const element = document.createElement('div');
+            element.className = 'wait-for-element-smoke';
+            document.body.appendChild(element);
+            const found = await pending;
+            element.remove();
+            return found === element;
+        })()`), true);
+        assert.equal(await evaluate(`(() => {
+            const toolbar = document.querySelector('.physmos-file-toolbar');
+            const before = toolbar.getBoundingClientRect().height;
+            const item = document.createElement('button');
+            item.className = 'physmos-file-button';
+            item.innerHTML = '<i class="dcg-icon-download"></i>';
+            appendToolbarItem(toolbar, item);
+            const after = toolbar.getBoundingClientRect().height;
+            item.remove();
+            return after > before;
+        })()`), true);
+        const toolbarTopBefore = await evaluate('document.querySelector(".physmos-file-toolbar").getBoundingClientRect().top');
+        await evaluate('document.querySelector(".dcg-right-pillbox-elements").style.paddingBottom = "40px"');
+        await delay(250);
+        const toolbarTopEnd = await evaluate('document.querySelector(".physmos-file-toolbar").getBoundingClientRect().top');
+        await evaluate('document.querySelector(".dcg-right-pillbox-elements").style.paddingBottom = ""');
+        await delay(250);
+        assert.ok(toolbarTopEnd > toolbarTopBefore, JSON.stringify({toolbarTopBefore, toolbarTopEnd}));
         await evaluate('calculator.setExpression({id: "smoke", latex: "y=x^2"}); calculator.setExpression({id: "point", latex: "(1,1)", pointOutline: true});');
         await delay(1000);
         assert.equal(await evaluate('Object.values(calculator.expressionAnalysis).some(value => value.isError)'), false);
         assert.match(await evaluate('calculator.screenshot({width: 120, height: 120})'), /^data:image\/png;base64,/);
         const userDataPath = await evaluate('window.electron.userDataPath');
         assert.equal(await fs.realpath(userDataPath), await fs.realpath(profile), 'Save is isolated from real user data');
-        await evaluate('document.querySelectorAll(".physmos-file-button")[0].click()');
+        const saveButtonCenter = await evaluate(`(() => {
+            const button = document.querySelectorAll('.physmos-file-button')[0];
+            const rect = button.getBoundingClientRect();
+            return {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2};
+        })()`);
+        assert.equal(await evaluate(`(() => {
+            const button = document.querySelectorAll('.physmos-file-button')[0];
+            const hit = document.elementFromPoint(${saveButtonCenter.x}, ${saveButtonCenter.y});
+            return hit === button || button.contains(hit);
+        })()`), true);
+        await send('Input.dispatchMouseEvent', {
+            type: 'mousePressed',
+            x: saveButtonCenter.x,
+            y: saveButtonCenter.y,
+            button: 'left',
+            clickCount: 1
+        });
+        await send('Input.dispatchMouseEvent', {
+            type: 'mouseReleased',
+            x: saveButtonCenter.x,
+            y: saveButtonCenter.y,
+            button: 'left',
+            clickCount: 1
+        });
         assert.equal(await evaluate('document.activeElement.id'), 'custom-prompt-input');
         await evaluate('document.querySelector(".custom-prompt-button:not(.default)").click()');
         assert.equal(await evaluate('Boolean(window._saved)'), false);
@@ -143,7 +193,11 @@ test('Electron Desmos works offline, saves, restores and opens history', {timeou
         assert.equal(historyStyle.cards, 1);
         assert.match(historyStyle.font, /Arial/);
         assert.ok(historyStyle.icon && historyStyle.icon !== 'none');
-        assert.equal(await evaluate('getComputedStyle(document.querySelector(".dcg-icon-folder-open"), ":before").content'), String.fromCharCode(34, 0xe931, 34));
+        assert.equal(await evaluate(`(() => {
+            const icon = document.querySelector('.physmos-file-button[aria-label="Open project"] > i');
+            return icon.classList.contains(window.physmosIcons.open.className) &&
+                getComputedStyle(icon, ':before').content !== 'none';
+        })()`), true);
         assert.deepEqual(errors, []);
         console.log(`Verified ${version}: offline render, graph, screenshot, file save/restore, view shortcuts, history window.`);
     } finally {

@@ -2,6 +2,61 @@
 // GLOBAL VARIABLES
 // Object: calculator
 // ---------------------------------------------------------------
+function waitForElement(selector, {root = document, timeout = 10000} = {}) {
+    const findElement = () => root.querySelector(selector);
+    const existing = findElement();
+    if (existing) return Promise.resolve(existing);
+
+    return new Promise((resolve, reject) => {
+        let timer = null;
+        const observer = new MutationObserver(() => {
+            const element = findElement();
+            if (!element) return;
+
+            if (timer) clearTimeout(timer);
+            observer.disconnect();
+            resolve(element);
+        });
+
+        observer.observe(root, {
+            childList: true,
+            subtree: true
+        });
+
+        if (timeout > 0) {
+            timer = setTimeout(() => {
+                observer.disconnect();
+                reject(new Error(`Timed out waiting for element: ${selector}`));
+            }, timeout);
+        }
+    });
+}
+
+function appendToolbarItem(toolbar, item) {
+    toolbar.appendChild(item);
+}
+
+function positionFileToolbar(toolbar, anchor) {
+    const toolbarParent = toolbar.parentElement;
+    if (!toolbarParent || !anchor.isConnected) return;
+
+    const parentRect = toolbarParent.getBoundingClientRect();
+    const anchorRect = anchor.getBoundingClientRect();
+    toolbar.style.top = `${anchorRect.bottom - parentRect.top + 5}px`;
+}
+
+function observeFileToolbarPosition(toolbar, anchor) {
+    toolbar._physmosPositionObserver?.disconnect();
+    positionFileToolbar(toolbar, anchor);
+
+    const observer = new ResizeObserver(() => {
+        positionFileToolbar(toolbar, anchor);
+    });
+    observer.observe(anchor);
+    observer.observe(toolbar.parentElement);
+    toolbar._physmosPositionObserver = observer;
+}
+
 function getCurrentTime() {
     const now = new Date();
     const year = now.getFullYear();
@@ -17,15 +72,25 @@ function getCurrentTime() {
     return formattedDateTime;
 }
 
-function createSettingButton(iconName = null, eventListener = null) {
+async function createSettingButton(iconName = null, eventListener = null) {
     if (!iconName) return;
-    let toolbar = document.querySelector('.physmos-file-toolbar');
+    const toolbarParent = await waitForElement('.dcg-overgraph-pillbox-elements');
+    const positionAnchor = await waitForElement('.dcg-right-pillbox-elements', {
+        root: toolbarParent
+    });
+    await waitForElement('.dcg-action-settings.dcg-popover-with-anchor__anchor', {
+        root: positionAnchor
+    });
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    let toolbar = toolbarParent.querySelector('.physmos-file-toolbar');
     if (!toolbar) {
         toolbar = document.createElement('div');
         toolbar.className = 'physmos-file-toolbar physmos-ui dcg-calculator-api-container-v1_13';
         toolbar.setAttribute('role', 'toolbar');
         toolbar.setAttribute('aria-label', 'Project files');
-        document.body.appendChild(toolbar);
+        toolbarParent.appendChild(toolbar);
+        observeFileToolbarPosition(toolbar, positionAnchor);
     }
     const button = document.createElement('button');
     button.type = 'button';
@@ -36,7 +101,7 @@ function createSettingButton(iconName = null, eventListener = null) {
     const icon = window.createPhysmosIcon(iconName);
     button.appendChild(icon);
     if (eventListener) button.addEventListener('click', eventListener);
-    toolbar.appendChild(button);
+    appendToolbarItem(toolbar, button);
 }
 
 function customPrompt(title, callback = () => {}, options = {}) {

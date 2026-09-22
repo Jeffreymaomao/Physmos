@@ -30,7 +30,6 @@ main {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    /*padding: 12px;*/
     padding-top: 0;
 }
 
