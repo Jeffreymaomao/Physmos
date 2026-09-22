@@ -11,9 +11,25 @@ if (!app.isPackaged && !process.env.PHYSMOS_TEST) {
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 const menuTemplate = require('./app/menuTemplate');
+const {
+    applyWindowSettings,
+    getWindowChromeOptions,
+    setMacTitleBarStyle,
+    setWindowButtonsVisible,
+    windowSettings
+} = require('./app/windowSettings');
 
 let mainWindow;
 let windows = [];
+app.on('web-contents-created', (event, contents) => {
+    contents.setWindowOpenHandler(() => ({
+        action: 'allow',
+        overrideBrowserWindowOptions: {...getWindowChromeOptions()}
+    }));
+    contents.on('did-create-window', (win) => {
+        applyWindowSettings(win);
+    });
+});
 const createNewWindow = async () => {
     const offset = { x: 15, y: 15 };
     let x, y;
@@ -35,6 +51,7 @@ const createNewWindow = async () => {
         y: y,
         center: true,
         autoHideMenuBar: true,
+        ...getWindowChromeOptions(),
         icon: path.join(__dirname, 'build/icon.png'),
         webPreferences: {
             preload: path.join(__dirname, 'app/preload.js'),
@@ -42,6 +59,7 @@ const createNewWindow = async () => {
             nodeIntegration: true,
         }
     });
+    applyWindowSettings(win);
     win.on('ready-to-show', () => {
         win.show();
         const menu = Menu.buildFromTemplate(menuTemplate);
@@ -61,6 +79,13 @@ app.whenReady().then(() => {mainWindow = createNewWindow();});
 
 ipcMain.handle('open-new-window', () => {createNewWindow();});
 ipcMain.handle('get-user-data-path', async () => {return app.getPath('userData');});
+ipcMain.handle('get-window-settings', () => ({...windowSettings}));
+ipcMain.handle('set-window-title-bar-style', (event, style) => {
+    return setMacTitleBarStyle(style);
+});
+ipcMain.handle('set-window-buttons-visible', (event, visible) => {
+    return setWindowButtonsVisible(visible);
+});
 // ipcMain.handle('set-title', (event, title) => {
 //     console.log(title);
 //     const webContents = event.sender;
@@ -69,8 +94,4 @@ ipcMain.handle('get-user-data-path', async () => {return app.getPath('userData')
 //         win.setTitle(title);
 //     }
 // });
-
-
-
-
 

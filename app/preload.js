@@ -48,6 +48,9 @@ ipcRenderer.invoke('get-user-data-path').then((userDataPath)=>{
                 return image.getBitmap()
             },
             openNewWindow: ()=>{ipcRenderer.invoke('open-new-window');},
+            getWindowSettings: ()=>ipcRenderer.invoke('get-window-settings'),
+            setMacTitleBarStyle: (style)=>ipcRenderer.invoke('set-window-title-bar-style', style),
+            setWindowButtonsVisible: (visible)=>ipcRenderer.invoke('set-window-buttons-visible', visible),
             readDirectory: readdir,
             createDirectory: mkdir,
 
@@ -57,4 +60,3 @@ ipcRenderer.invoke('get-user-data-path').then((userDataPath)=>{
         }
     );
 });
-

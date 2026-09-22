@@ -104,6 +104,16 @@ test('Electron Desmos works offline, saves, restores and opens history', {timeou
         const version = await evaluate('Desmos.version');
         assert.match(version, /^v?1\.13/);
         assert.equal(await evaluate('typeof window.electron.readFile'), 'function');
+        assert.deepEqual(await evaluate('window.electron.getWindowSettings()'), {
+            macTitleBarStyle: 'default',
+            showWindowButtons: true
+        });
+        assert.equal(await evaluate('window.electron.setMacTitleBarStyle("hiddenInset")'), 'hiddenInset');
+        const changedWindowSettings = await evaluate('window.electron.getWindowSettings()');
+        assert.equal(changedWindowSettings.macTitleBarStyle, 'hiddenInset');
+        assert.equal(await evaluate('window.electron.setMacTitleBarStyle("default")'), 'default');
+        assert.equal(await evaluate('window.electron.setWindowButtonsVisible(false)'), false);
+        assert.equal(await evaluate('window.electron.setWindowButtonsVisible(true)'), true);
         assert.equal(await evaluate('document.querySelectorAll(".dcg-calculator-api-container-v1_13").length > 0'), true);
         assert.equal(await evaluate(`(async () => {
             const pending = waitForElement('.wait-for-element-smoke');
