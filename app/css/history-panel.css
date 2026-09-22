@@ -17,17 +17,23 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 12px 8px 12px;
+    padding: 5px;
+    padding-top: 6px;
+    background: var(--dcg-custom-background-color-shaded);
+    background: linear-gradient(#fcfcfc, #eaeaea);
+    border-bottom: 1px solid var(--dcg-custom-border-color, rgba(0, 0, 0, .2));
 }
 
 .physmos-history-panel .history-header-copy {
     min-width: 0;
+    padding-top: 1px;
 }
 
 .physmos-history-panel .history-header h1 {
     margin: 0;
     font-size: 20px;
     font-weight: 500;
+    line-height: 35px;
 }
 
 .physmos-history-panel .history-header p {
@@ -39,8 +45,9 @@
     display: grid;
     place-items: center;
     flex: 0 0 auto;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
+    margin-top: 2px;
     padding: 0;
     border: 0;
     border-radius: 4px;

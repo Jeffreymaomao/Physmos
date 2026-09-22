@@ -141,9 +141,7 @@ function createHistoryPanel() {
     copy.className = 'history-header-copy';
     const heading = document.createElement('h1');
     heading.textContent = 'Projects';
-    const subtitle = document.createElement('p');
-    subtitle.textContent = 'Your saved graphs';
-    copy.append(heading, subtitle);
+    copy.append(heading);
 
     const content = document.createElement('div');
     content.className = 'history-content';
