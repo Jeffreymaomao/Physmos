@@ -42,32 +42,8 @@
     transition: box-shadow 0s ease-in-out;
 }
 
-.physmos-file-toolbar {
-    position: absolute;
-    top: calc(100% + 5px);
-    right: 0;
-    z-index: 200;
-    pointer-events: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    transition: top 0.1s ease-out;
-}
-
 .physmos-file-button {
-    flex: 0 0 auto;
-    width: 37px;
-    height: 37px;
-    padding: 0;
-    border: 1px solid var(--dcg-custom-border-color, rgba(0, 0, 0, .1));
-    border-radius: 5px;
-    background: var(--dcg-custom-background-color-shaded, #ededed);
-    box-shadow: 0 0 5px var(--dcg-custom-border-color, rgba(0, 0, 0, .1));
     color: #666;
-    font-size: 18px;
-    line-height: 35px;
-    text-align: center;
-    text-shadow: 0 1px var(--dcg-custom-background-color, #fff);
     cursor: pointer;
 }
 
@@ -76,7 +52,7 @@
 }
 
 .physmos-file-button:hover {
-    background: var(--dcg-custom-background-color-shaded, #e8e8e8);
+    background: rgba(0, 0, 0, .04);
 }
 
 .physmos-file-button:hover i {
@@ -85,5 +61,5 @@
 
 .physmos-file-button:focus-visible {
     outline: 2px solid #2d70b3;
-    outline-offset: 2px;
+    outline-offset: -2px;
 }

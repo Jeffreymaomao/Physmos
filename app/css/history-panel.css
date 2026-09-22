@@ -1,0 +1,160 @@
+.physmos-history-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--physmos-border);
+    background: var(--physmos-surface);
+    box-sizing: border-box;
+}
+
+.physmos-history-panel .history-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 8px 12px;
+}
+
+.physmos-history-panel .history-header-copy {
+    min-width: 0;
+}
+
+.physmos-history-panel .history-header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.physmos-history-panel .history-header p {
+    margin: 0;
+    color: var(--physmos-muted);
+}
+
+.physmos-history-panel .history-close {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--physmos-muted);
+    font-size: 18px;
+    line-height: 1;
+}
+
+.physmos-history-panel .history-close i {
+    display: block;
+    line-height: 1;
+    transform: translateX(-1px);
+}
+
+.physmos-history-panel .history-close:hover {
+    background: var(--physmos-hover);
+    color: var(--physmos-text);
+}
+
+.physmos-history-panel .history-content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.physmos-history-panel ul {
+    margin: 0;
+    padding: 0;
+    border-top: 0.5px solid #ddd;
+    border-bottom: 0.5px solid #ddd;
+    list-style: none;
+}
+
+.physmos-history-panel .history {
+    position: relative;
+    border-top: 0.5px solid #ddd;
+    border-bottom: 0.5px solid #ddd;
+}
+
+.physmos-history-panel .history:hover {
+    border-color: #bbb;
+    background: var(--physmos-hover);
+}
+
+.physmos-history-panel .history-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 40px 12px 12px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.physmos-history-panel .thumbnail {
+    width: 56px;
+    height: 56px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.physmos-history-panel .name-container {
+    flex: 1;
+    min-width: 0;
+}
+
+.physmos-history-panel .name {
+    margin: 0;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.physmos-history-panel .name:hover {
+    cursor: text;
+}
+
+.physmos-history-panel input.name {
+    width: 100%;
+    padding: 3px 5px;
+    outline: 0;
+}
+
+.physmos-history-panel .time {
+    margin-top: 5px;
+    color: var(--physmos-muted);
+    font-size: 12px;
+}
+
+.physmos-history-panel .delete-history {
+    position: absolute;
+    top: 12px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 4px;
+    background: #eee;
+    color: #777;
+    opacity: 0.8;
+    transition: 0.2s;
+}
+
+.physmos-history-panel .delete-history:hover {
+    background: #ddd;
+    color: #c74440;
+    opacity: 1;
+}
+
+.physmos-history-panel .history-empty {
+    margin: 48px 16px;
+    color: var(--physmos-muted);
+    text-align: center;
+}

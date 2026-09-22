@@ -2,6 +2,12 @@
 // GLOBAL VARIABLES
 // Object: calculator
 // ---------------------------------------------------------------
+var filePillbox = null;
+var filePillboxObserver = null;
+var fileTooltip = null;
+var fileTooltipMount = null;
+var fileTooltipTimer = null;
+
 function waitForElement(selector, {root = document, timeout = 10000} = {}) {
     const findElement = () => root.querySelector(selector);
     const existing = findElement();
@@ -32,31 +38,6 @@ function waitForElement(selector, {root = document, timeout = 10000} = {}) {
     });
 }
 
-function appendToolbarItem(toolbar, item) {
-    toolbar.appendChild(item);
-}
-
-function positionFileToolbar(toolbar, anchor) {
-    const toolbarParent = toolbar.parentElement;
-    if (!toolbarParent || !anchor.isConnected) return;
-
-    const parentRect = toolbarParent.getBoundingClientRect();
-    const anchorRect = anchor.getBoundingClientRect();
-    toolbar.style.top = `${anchorRect.bottom - parentRect.top + 5}px`;
-}
-
-function observeFileToolbarPosition(toolbar, anchor) {
-    toolbar._physmosPositionObserver?.disconnect();
-    positionFileToolbar(toolbar, anchor);
-
-    const observer = new ResizeObserver(() => {
-        positionFileToolbar(toolbar, anchor);
-    });
-    observer.observe(anchor);
-    observer.observe(toolbar.parentElement);
-    toolbar._physmosPositionObserver = observer;
-}
-
 function getCurrentTime() {
     const now = new Date();
     const year = now.getFullYear();
@@ -72,36 +53,186 @@ function getCurrentTime() {
     return formattedDateTime;
 }
 
-async function createSettingButton(iconName = null, eventListener = null) {
-    if (!iconName) return;
-    const toolbarParent = await waitForElement('.dcg-overgraph-pillbox-elements');
-    const positionAnchor = await waitForElement('.dcg-right-pillbox-elements', {
-        root: toolbarParent
-    });
+async function createSettingButton(iconNameOrOptions = null, eventListener = null, options = {}) {
+    const config = normalizeSettingButtonConfig(iconNameOrOptions, eventListener, options);
+    if (!config.iconName && !config.iconClassName) return;
+
+    const pillboxRoot = await waitForElement('.dcg-right-pillbox-elements');
     await waitForElement('.dcg-action-settings.dcg-popover-with-anchor__anchor', {
-        root: positionAnchor
+        root: pillboxRoot
     });
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-    let toolbar = toolbarParent.querySelector('.physmos-file-toolbar');
-    if (!toolbar) {
-        toolbar = document.createElement('div');
-        toolbar.className = 'physmos-file-toolbar physmos-ui dcg-calculator-api-container-v1_13';
-        toolbar.setAttribute('role', 'toolbar');
-        toolbar.setAttribute('aria-label', 'Project files');
-        toolbarParent.appendChild(toolbar);
-        observeFileToolbarPosition(toolbar, positionAnchor);
+    if (!filePillbox) {
+        filePillbox = document.createElement('div');
+        filePillbox.className = 'physmos-file-pillbox dcg-btn-flat-gray dcg-btn-flat-gray-group dcg-group-vertical dcg-pillbox-element';
+        filePillbox.setAttribute('role', 'group');
+        filePillbox.setAttribute('aria-label', 'Project files');
     }
+    if (!filePillbox.isConnected) pillboxRoot.appendChild(filePillbox);
+    observeFilePillbox();
+
+    const hitArea = document.createElement('div');
+    hitArea.className = 'dcg-tooltip-hit-area-container dcg-display-block dcg-do-not-blur dcg-cursor-default';
+    hitArea.tabIndex = -1;
+
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'physmos-file-button';
-    const label = iconName === 'save' ? 'Save project' : 'Open project';
-    button.title = label;
-    button.setAttribute('aria-label', label);
-    const icon = window.createPhysmosIcon(iconName);
+    button.className = [
+        'dcg-unstyled-button',
+        'dcg-pillbox-btn-interior',
+        'physmos-file-button',
+        config.className
+    ].filter(Boolean).join(' ');
+    button.setAttribute('aria-label', config.label);
+    if (config.id) button.id = config.id;
+    if (config.disabled) {
+        button.disabled = true;
+        button.classList.add('dcg-disabled');
+    }
+    const icon = config.iconClassName ? document.createElement('i') : window.createPhysmosIcon(config.iconName);
+    if (config.iconClassName) {
+        icon.className = config.iconClassName;
+    }
+    icon.setAttribute('aria-hidden', 'true');
     button.appendChild(icon);
-    if (eventListener) button.addEventListener('click', eventListener);
-    appendToolbarItem(toolbar, button);
+    if (config.onClick) button.addEventListener('click', config.onClick);
+    if (config.tooltip) attachFileTooltip(button, config.tooltip);
+    hitArea.appendChild(button);
+    insertFileButton(hitArea, config.order);
+}
+
+function normalizeSettingButtonConfig(iconNameOrOptions, eventListener, options) {
+    const isObjectConfig = iconNameOrOptions && typeof iconNameOrOptions === 'object';
+    const config = isObjectConfig ? {...iconNameOrOptions} : {
+        ...options,
+        icon: iconNameOrOptions,
+        onClick: eventListener
+    };
+    const iconName = config.icon || config.iconName || null;
+    const label = config.label || (iconName === 'save' ? 'Save Project' :
+        iconName === 'open' ? 'Open Project' : 'Project action');
+
+    return {
+        iconName,
+        iconClassName: config.iconClassName || null,
+        label,
+        tooltip: config.tooltip === false ? null : config.tooltip || label,
+        onClick: config.onClick || null,
+        className: config.className || '',
+        id: config.id || null,
+        order: Number.isFinite(config.order) ? config.order : null,
+        disabled: Boolean(config.disabled)
+    };
+}
+
+function insertFileButton(hitArea, order) {
+    if (order === null) {
+        filePillbox.appendChild(hitArea);
+        return;
+    }
+
+    hitArea.dataset.order = String(order);
+    const nextButton = [...filePillbox.children].find((item) => {
+        const itemOrder = Number(item.dataset.order);
+        return Number.isFinite(itemOrder) && itemOrder > order;
+    });
+    filePillbox.insertBefore(hitArea, nextButton || null);
+}
+
+function observeFilePillbox() {
+    if (filePillboxObserver) return;
+
+    const observer = new MutationObserver(() => {
+        const pillboxRoot = document.querySelector('.dcg-right-pillbox-elements');
+        if (pillboxRoot && filePillbox && !filePillbox.isConnected) {
+            hideFileTooltip();
+            pillboxRoot.appendChild(filePillbox);
+        }
+    });
+    const calculatorRoot = document.querySelector('.dcg-calculator-api-container-v1_13') || document.body;
+    observer.observe(calculatorRoot, {childList: true, subtree: true});
+    filePillboxObserver = observer;
+}
+
+function attachFileTooltip(target, label) {
+    target.addEventListener('mouseenter', () => {
+        showFileTooltip(target, label, 250);
+    });
+    target.addEventListener('mouseleave', hideFileTooltip);
+    target.addEventListener('focus', () => {
+        showFileTooltip(target, label, 0);
+    });
+    target.addEventListener('blur', hideFileTooltip);
+    target.addEventListener('click', hideFileTooltip);
+}
+
+function hideFileTooltip() {
+    if (fileTooltipTimer) {
+        clearTimeout(fileTooltipTimer);
+        fileTooltipTimer = null;
+    }
+    if (fileTooltip) {
+        fileTooltip.remove();
+        fileTooltip = null;
+    }
+}
+
+function showFileTooltip(target, label, delay) {
+    hideFileTooltip();
+    fileTooltipTimer = setTimeout(() => {
+        fileTooltipTimer = null;
+        if (!target.isConnected) return;
+
+        if (!fileTooltipMount || !fileTooltipMount.isConnected) {
+            fileTooltipMount = document.createElement('div');
+            fileTooltipMount.className = 'dcg-tooltip-mount-pt';
+            const mountRoot = target.closest('.dcg-tap-container') ||
+                document.querySelector('.dcg-calculator-api-container-v1_13') ||
+                document.body;
+            mountRoot.appendChild(fileTooltipMount);
+        }
+
+        const targetRect = target.getBoundingClientRect();
+        const mountRect = fileTooltipMount.getBoundingClientRect();
+        const container = document.createElement('div');
+        container.className = 'dcg-tooltip-positioning-container dcg-tooltip-gravity-e-w dcg-tooltip-theme-dark';
+        container.style.top = `${targetRect.top - mountRect.top}px`;
+        container.style.left = `${targetRect.left - mountRect.left}px`;
+        container.style.width = `${targetRect.width}px`;
+        container.style.height = `${targetRect.height}px`;
+
+        const messageContainer = document.createElement('div');
+        messageContainer.className = 'dcg-tooltip-message-container';
+        messageContainer.style.transform = 'translate(0, -50%)';
+        messageContainer.style.right = '100%';
+        messageContainer.style.width = '200px';
+        messageContainer.style.top = '50%';
+        messageContainer.style.marginRight = '5px';
+        messageContainer.style.textAlign = 'right';
+
+        const message = document.createElement('div');
+        message.className = 'dcg-tooltip-message';
+        message.setAttribute('role', 'tooltip');
+        message.style.left = '0px';
+        const text = document.createElement('span');
+        text.textContent = label;
+        message.appendChild(text);
+
+        const arrow = document.createElement('div');
+        arrow.className = 'dcg-tooltip-arrow dcg-tooltip-gravity-w';
+        arrow.style.top = '50%';
+        arrow.style.right = '100%';
+        arrow.style.border = '5px solid transparent';
+        arrow.style.borderColor = 'transparent transparent transparent var(--dcg-custom-text-color, #000)';
+        arrow.style.marginRight = '-5px';
+        arrow.style.marginTop = '-5px';
+
+        messageContainer.appendChild(message);
+        container.append(messageContainer, arrow);
+        fileTooltipMount.appendChild(container);
+        fileTooltip = container;
+    }, delay);
 }
 
 function customPrompt(title, callback = () => {}, options = {}) {

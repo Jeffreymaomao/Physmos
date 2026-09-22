@@ -81,8 +81,9 @@ The icon wrapper must carry `dcg-calculator-api-container-v1_13` for Desmos styl
 to apply. These classes are internal to the pinned bundle, not a public API.
 
 `app/css/theme.css` owns shared font, colors, radius, shadow, inputs and dialogs.
-`index.css` handles the toolbar/screenshot layout; `history.css` handles project
-rows. Native Desmos typography is no longer overridden by Physmos.
+`index.css` handles screenshot and file button presentation; `history-panel.css`
+handles the embedded project panel. Native Desmos typography is no longer
+overridden by Physmos.
 
 ### Editing icons and quick macOS checks
 

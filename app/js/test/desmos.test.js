@@ -124,24 +124,106 @@ test('Electron Desmos works offline, saves, restores and opens history', {timeou
             element.remove();
             return found === element;
         })()`), true);
+        const pillboxStructure = await evaluate(`(() => {
+            const root = document.querySelector('.dcg-right-pillbox-elements');
+            const group = root.querySelector(':scope > .physmos-file-pillbox');
+            const buttons = [...group.querySelectorAll('.physmos-file-button')];
+            return {
+                isNativeGroup: group.classList.contains('dcg-btn-flat-gray') &&
+                    group.classList.contains('dcg-btn-flat-gray-group') &&
+                    group.classList.contains('dcg-group-vertical') &&
+                    group.classList.contains('dcg-pillbox-element'),
+                buttonCount: buttons.length,
+                buttonsUseNativeInterior: buttons.every((button) => button.classList.contains('dcg-pillbox-btn-interior')),
+                buttonsHaveTooltipHitArea: buttons.every((button) =>
+                    button.parentElement.classList.contains('dcg-tooltip-hit-area-container') &&
+                    button.parentElement.classList.contains('dcg-display-block')
+                )
+            };
+        })()`);
+        assert.equal(pillboxStructure.isNativeGroup, true);
+        assert.equal(pillboxStructure.buttonCount, 3);
+        assert.equal(pillboxStructure.buttonsUseNativeInterior, true);
+        assert.equal(pillboxStructure.buttonsHaveTooltipHitArea, true);
+        await evaluate(`createSettingButton({
+            icon: 'delete',
+            label: 'Delete Project',
+            tooltip: 'Delete Project',
+            className: 'custom-file-button',
+            order: 99,
+            onClick: () => { window._customFileButtonClicked = true; }
+        })`);
+        await delay(50);
+        const customButton = await evaluate(`(() => {
+            const button = document.querySelector('.physmos-file-button[aria-label="Delete Project"]');
+            return {
+                exists: Boolean(button),
+                hasCustomClass: button.classList.contains('custom-file-button'),
+                isLast: button.parentElement === document.querySelector('.physmos-file-pillbox').lastElementChild
+            };
+        })()`);
+        assert.equal(customButton.exists, true);
+        assert.equal(customButton.hasCustomClass, true);
+        assert.equal(customButton.isLast, true);
+        await evaluate('document.querySelector(".physmos-file-button[aria-label=\\"Delete Project\\"]").click()');
+        assert.equal(await evaluate('window._customFileButtonClicked === true'), true);
+        await evaluate('document.querySelector(".physmos-file-button[aria-label=\\"Delete Project\\"]").parentElement.remove()');
+        await evaluate(`calculator.setExpression({id: 'before-new', latex: 'y=x'});
+            window._name = 'Old Graph';
+            window._saved = true;
+            document.querySelector('.physmos-file-button[aria-label="New Graph"]').click();`);
+        await delay(100);
+        assert.deepEqual(await evaluate(`({
+            cleared: calculator.getExpressions().every((expression) => !expression.latex),
+            name: window._name,
+            saved: window._saved,
+            icon: document.querySelector('.physmos-file-button[aria-label="New Graph"] i').classList.contains('dcg-icon-folder-open')
+        })`), {
+            cleared: true,
+            name: 'Undefined',
+            saved: false,
+            icon: true
+        });
+        const saveButtonCenterForTooltip = await evaluate(`(() => {
+            const button = document.querySelectorAll('.physmos-file-button')[0];
+            const rect = button.getBoundingClientRect();
+            return {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2};
+        })()`);
+        await send('Input.dispatchMouseEvent', {
+            type: 'mouseMoved',
+            x: saveButtonCenterForTooltip.x,
+            y: saveButtonCenterForTooltip.y,
+            button: 'none'
+        });
+        await delay(350);
+        const fileTooltip = await evaluate(`(() => {
+            const tooltip = document.querySelector('.dcg-tooltip-positioning-container');
+            if (!tooltip) return null;
+            const buttonRect = document.querySelectorAll('.physmos-file-button')[0].getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            return {
+                text: tooltip.querySelector('.dcg-tooltip-message span')?.textContent,
+                gravity: tooltip.classList.contains('dcg-tooltip-gravity-e-w'),
+                theme: tooltip.classList.contains('dcg-tooltip-theme-dark'),
+                arrow: Boolean(tooltip.querySelector('.dcg-tooltip-arrow.dcg-tooltip-gravity-w')),
+                positionedLeft: tooltipRect.left <= buttonRect.left
+            };
+        })()`);
+        assert.equal(fileTooltip.text, 'Save Project');
+        assert.equal(fileTooltip.gravity, true);
+        assert.equal(fileTooltip.theme, true);
+        assert.equal(fileTooltip.arrow, true);
+        assert.equal(fileTooltip.positionedLeft, true);
+        await send('Input.dispatchMouseEvent', {type: 'mouseMoved', x: 5, y: 5, button: 'none'});
+        await delay(100);
+        assert.equal(await evaluate('document.querySelector(".dcg-tooltip-positioning-container") === null'), true);
+        await evaluate('document.querySelector(".physmos-file-pillbox").remove()');
+        await delay(50);
         assert.equal(await evaluate(`(() => {
-            const toolbar = document.querySelector('.physmos-file-toolbar');
-            const before = toolbar.getBoundingClientRect().height;
-            const item = document.createElement('button');
-            item.className = 'physmos-file-button';
-            item.innerHTML = '<i class="dcg-icon-download"></i>';
-            appendToolbarItem(toolbar, item);
-            const after = toolbar.getBoundingClientRect().height;
-            item.remove();
-            return after > before;
+            const root = document.querySelector('.dcg-right-pillbox-elements');
+            const group = root.querySelector(':scope > .physmos-file-pillbox');
+            return Boolean(group) && group.querySelectorAll('.physmos-file-button').length === 3;
         })()`), true);
-        const toolbarTopBefore = await evaluate('document.querySelector(".physmos-file-toolbar").getBoundingClientRect().top');
-        await evaluate('document.querySelector(".dcg-right-pillbox-elements").style.paddingBottom = "40px"');
-        await delay(250);
-        const toolbarTopEnd = await evaluate('document.querySelector(".physmos-file-toolbar").getBoundingClientRect().top');
-        await evaluate('document.querySelector(".dcg-right-pillbox-elements").style.paddingBottom = ""');
-        await delay(250);
-        assert.ok(toolbarTopEnd > toolbarTopBefore, JSON.stringify({toolbarTopBefore, toolbarTopEnd}));
         await evaluate('calculator.setExpression({id: "smoke", latex: "y=x^2"}); calculator.setExpression({id: "point", latex: "(1,1)", pointOutline: true});');
         await delay(1000);
         assert.equal(await evaluate('Object.values(calculator.expressionAnalysis).some(value => value.isError)'), false);
@@ -187,29 +269,61 @@ test('Electron Desmos works offline, saves, restores and opens history', {timeou
         assert.equal(await evaluate('calculator.settings.graphpaper'), false);
         await send('Input.dispatchKeyEvent', {type: 'keyDown', key: '2', code: 'Digit2', modifiers: 4});
         assert.equal(await evaluate('calculator.settings.graphpaper'), true);
-        assert.equal(await evaluate('document.querySelectorAll(".physmos-file-button").length'), 2);
+        assert.equal(await evaluate('document.querySelectorAll(".physmos-file-button").length'), 3);
+        assert.equal(await evaluate('document.querySelector(".physmos-history-panel") === null'), true);
         await evaluate('document.querySelectorAll(".physmos-file-button")[1].click()');
         await delay(500);
         targets = await fetch(`http://127.0.0.1:${port}/json`).then((r) => r.json());
-        assert.ok(targets.some((entry) => entry.url.endsWith('/app/history.html')));
+        assert.equal(targets.some((entry) => entry.url.endsWith('/app/history.html')), false);
         const historyStyle = await evaluate(`(() => {
-            const doc = historyWindow.document;
+            const outer = document.querySelector('.dcg-exppanel-outer');
+            const panel = outer.querySelector(':scope > .physmos-history-panel');
+            const outerRect = outer.getBoundingClientRect();
+            const panelRect = panel.getBoundingClientRect();
             return {
-                cards: doc.querySelectorAll('.history').length,
-                font: historyWindow.getComputedStyle(doc.body).fontFamily,
-                icon: historyWindow.getComputedStyle(doc.querySelector('.dcg-icon-trashcan'), ':before').content
+                cards: panel.querySelectorAll('.history').length,
+                font: getComputedStyle(panel).fontFamily,
+                icon: getComputedStyle(panel.querySelector('.dcg-icon-trashcan'), ':before').content,
+                fillsOuter: Math.abs(outerRect.left - panelRect.left) < 1 &&
+                    Math.abs(outerRect.top - panelRect.top) < 1 &&
+                    Math.abs(outerRect.right - panelRect.right) < 1 &&
+                    Math.abs(outerRect.bottom - panelRect.bottom) < 1,
+                hasCloseButton: Boolean(panel.querySelector('.history-close')),
+                closeIconOffset: (() => {
+                    const buttonRect = panel.querySelector('.history-close').getBoundingClientRect();
+                    const iconRect = panel.querySelector('.history-close i').getBoundingClientRect();
+                    return {
+                        x: (iconRect.left + iconRect.width / 2) -
+                            (buttonRect.left + buttonRect.width / 2),
+                        y: (iconRect.top + iconRect.height / 2) -
+                            (buttonRect.top + buttonRect.height / 2)
+                    };
+                })()
             };
         })()`);
         assert.equal(historyStyle.cards, 1);
         assert.match(historyStyle.font, /Arial/);
         assert.ok(historyStyle.icon && historyStyle.icon !== 'none');
+        assert.equal(historyStyle.fillsOuter, true);
+        assert.equal(historyStyle.hasCloseButton, true);
+        assert.ok(Math.abs(historyStyle.closeIconOffset.x + 1) < 1);
+        assert.ok(Math.abs(historyStyle.closeIconOffset.y) < 1);
+        await send('Input.dispatchKeyEvent', {type: 'keyDown', key: 'o', code: 'KeyO', modifiers: 4});
+        await delay(100);
+        assert.equal(await evaluate('document.querySelector(".physmos-history-panel") === null'), true);
+        await evaluate('document.querySelectorAll(".physmos-file-button")[1].click()');
+        await delay(500);
+        assert.equal(await evaluate('Boolean(document.querySelector(".physmos-history-panel"))'), true);
+        await evaluate('document.querySelector(".physmos-history-panel .history-close").click()');
+        await delay(100);
+        assert.equal(await evaluate('document.querySelector(".physmos-history-panel") === null'), true);
         assert.equal(await evaluate(`(() => {
-            const icon = document.querySelector('.physmos-file-button[aria-label="Open project"] > i');
+            const icon = document.querySelector('.physmos-file-button[aria-label="Open Project"] > i');
             return icon.classList.contains(window.physmosIcons.open.className) &&
                 getComputedStyle(icon, ':before').content !== 'none';
         })()`), true);
         assert.deepEqual(errors, []);
-        console.log(`Verified ${version}: offline render, graph, screenshot, file save/restore, view shortcuts, history window.`);
+        console.log(`Verified ${version}: offline render, graph, screenshot, file save/restore, view shortcuts, embedded history panel.`);
     } finally {
         if (socket) socket.close();
         if (child.pid && child.exitCode === null) {

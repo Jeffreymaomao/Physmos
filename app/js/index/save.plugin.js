@@ -3,7 +3,12 @@
 // Object: calculator
 // ---------------------------------------------------------------
 
-createSettingButton('save', saveState);
+createSettingButton({
+    icon: 'save',
+    label: 'Save Project',
+    onClick: saveState,
+    order: 0
+});
 initializeSavePath();
 window._name =  "Undefined";
 function initializeSavePath(){
@@ -48,7 +53,7 @@ function saveState(){
             };
             window.electron.writeFile(`${path}/save/${id}.json`,    JSON.stringify(state), (err)=>{
                 window.electron.writeFile(`${path}/save/history.json`,  JSON.stringify(history), (err)=>{
-                    reloadHistoryWindow();
+                    reloadHistoryPanel();
                 });
             });
         });
@@ -66,4 +71,3 @@ function saveState(){
     }
     return;
 }
-

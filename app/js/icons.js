@@ -2,7 +2,8 @@
 window.physmosIcons = {
     delete: {source: 'desmos', className: 'dcg-icon-trashcan', file: 'icons/delete.svg'},
     save: {source: 'desmos', className: 'dcg-icon-download', file: 'icons/save.svg'},
-    open: {source: 'desmos', className: 'dcg-icon-folder', file: 'icons/open.svg'}
+    open: {source: 'desmos', className: 'dcg-icon-history', file: 'icons/open.svg'},
+    newGraph: {source: 'desmos', className: 'dcg-icon-folder-open', file: 'icons/open.svg'}
 };
 
 window.createPhysmosIcon = function (name) {

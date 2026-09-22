@@ -1,127 +1,190 @@
 // Open the desmos state
-var historyWindow=null;
-function reloadHistoryWindow(){
-    if(historyWindow){
-        historyWindow.postMessage({
-            id: calculator.getState().randomSeed,
-            historyPath: window.electron.userDataPath,
+var historyPanel = null;
+
+function getHistoryPath() {
+    return window.electron.userDataPath + "/save";
+}
+
+function readFile(filename) {
+    return new Promise((resolve, reject) => {
+        window.electron.readFile(filename, 'utf8', (err, data) => {
+            if (err) reject(err);
+            else resolve(data);
         });
+    });
+}
+
+function writeFile(filename, content) {
+    return new Promise((resolve, reject) => {
+        window.electron.writeFile(filename, content, (err) => {
+            if (err) reject(err);
+            else resolve();
+        });
+    });
+}
+
+function deleteFile(filename) {
+    return new Promise((resolve, reject) => {
+        window.electron.deleteFile(filename, (err) => {
+            if (err) reject(err);
+            else resolve();
+        });
+    });
+}
+
+async function readJsonFile(filename) {
+    return JSON.parse(await readFile(filename));
+}
+
+async function ensureHistoryPath() {
+    const userDataPath = window.electron.userDataPath;
+    const path = getHistoryPath();
+    const files = await window.electron.readDirectory(userDataPath);
+
+    if (!files.includes("save")) {
+        await window.electron.createDirectory(path);
+    }
+
+    const saveFiles = await window.electron.readDirectory(path);
+    if (!saveFiles.includes("history.json")) {
+        await writeFile(path + "/history.json", JSON.stringify({}));
+    }
+
+    return path;
+}
+
+function reloadHistoryPanel() {
+    if (historyPanel && historyPanel.isConnected) {
+        loadHistoryPanel();
     }
 }
 
-createSettingButton('open', (e)=>{
-    const path = window.electron.userDataPath;
-    window.electron.readDirectory(path).then(files => {
-        if(files.includes("save")){
-            openFolder(path+"/save");
-        }else{
-             window.electron.createDirectory(path + "/save").then(() => {
-                window.electron.writeFile(path + "/save/history.json", JSON.stringify({}), (err)=>{
-                    if(err){
-                        console.log(e)
-                    }else{
-                        openFolder(path+"/save");
-                    }
-                });
-            }).catch((dirError) => {
-                console.error(dirError);
-            });
+function closeHistoryPanel() {
+    if (!historyPanel) return;
+    historyPanel.remove();
+    historyPanel = null;
+}
+
+async function deleteHistory(historyId) {
+    const path = getHistoryPath();
+    const history = await readJsonFile(path + "/history.json");
+    delete history[historyId];
+    await deleteFile(path + `/${historyId}.json`);
+    await writeFile(path + "/history.json", JSON.stringify(history));
+    reloadHistoryPanel();
+}
+
+async function renameHistory(historyId, name) {
+    const path = getHistoryPath();
+    const history = await readJsonFile(path + "/history.json");
+    if (!history[historyId]) return;
+
+    history[historyId].name = name;
+    await writeFile(path + "/history.json", JSON.stringify(history));
+    reloadHistoryPanel();
+}
+
+async function openHistory(historyId, name) {
+    const path = getHistoryPath();
+    const state = await readJsonFile(path + `/${historyId}.json`);
+    calculator.setState(state);
+    window._name = name;
+    window._saved = true;
+}
+
+async function loadHistoryPanel() {
+    if (!historyPanel || !historyPanel.isConnected) return;
+
+    try {
+        const history = await readJsonFile(getHistoryPath() + "/history.json");
+        display(history, historyPanel._historyContent, {
+            onDelete: (event, name) => {
+                const historyId = event.currentTarget.getAttribute('data-history-id');
+                customPrompt('Delete project?', (confirmed) => {
+                    if (!confirmed) return;
+                    deleteHistory(historyId).catch(console.error);
+                }, {confirm: true, message: `Delete “${name}”? This cannot be undone.`});
+            },
+            onOpen: (historyId) => {
+                openHistory(historyId, history[historyId]?.name || 'Undefined').catch(console.error);
+            },
+            onRename: (historyId, name) => {
+                renameHistory(historyId, name).catch(console.error);
+            }
+        });
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+function createHistoryPanel() {
+    const panel = document.createElement('section');
+    panel.className = 'physmos-history-panel physmos-ui dcg-calculator-api-container-v1_13';
+    panel.setAttribute('role', 'region');
+    panel.setAttribute('aria-label', 'Projects');
+
+    const header = document.createElement('header');
+    header.className = 'history-header';
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'history-close';
+    closeButton.title = 'Close projects';
+    closeButton.setAttribute('aria-label', 'Close projects');
+    const closeIcon = document.createElement('i');
+    closeIcon.className = 'dcg-icon-chevron-left';
+    closeIcon.setAttribute('aria-hidden', 'true');
+    closeButton.appendChild(closeIcon);
+    closeButton.addEventListener('click', closeHistoryPanel);
+
+    const copy = document.createElement('div');
+    copy.className = 'history-header-copy';
+    const heading = document.createElement('h1');
+    heading.textContent = 'Projects';
+    const subtitle = document.createElement('p');
+    subtitle.textContent = 'Your saved graphs';
+    copy.append(heading, subtitle);
+
+    const content = document.createElement('div');
+    content.className = 'history-content';
+
+    header.append(closeButton, copy);
+    panel.append(header, content);
+    panel._historyContent = content;
+    return panel;
+}
+
+function openHistoryPanel() {
+    const outer = document.querySelector('.dcg-exppanel-outer');
+    if (!outer) return;
+
+    if (historyPanel && historyPanel.isConnected) {
+        loadHistoryPanel();
+        return;
+    }
+
+    historyPanel = createHistoryPanel();
+    outer.appendChild(historyPanel);
+    loadHistoryPanel();
+}
+
+async function openFolder() {
+    try {
+        if (historyPanel && historyPanel.isConnected) {
+            closeHistoryPanel();
+            return;
         }
-    }).catch(error => {
-        console.error('Error reading directory:', error);
-    });
+
+        await ensureHistoryPath();
+        openHistoryPanel();
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+createSettingButton({
+    icon: 'open',
+    label: 'Open Project',
+    onClick: openFolder,
+    order: 1
 });
-
-function openFolder(){
-    if(historyWindow && !historyWindow.closed){
-        historyWindow.close();
-    }
-    const path = window.electron.userDataPath+"/save";
-    historyWindow = window.open("history.html", 'history', [
-        "width=400",
-        "height=600",
-        "x=0",
-        "minWidth = 90",
-        "y=0",
-    ].join(","));
-    historyWindow.addEventListener("load", (e)=>{
-        historyWindow.postMessage({
-            id: calculator.getState().randomSeed,
-            historyPath: path,
-        });
-    });
-    window.addEventListener('beforeunload', () => {
-        if (historyWindow && !historyWindow.closed) {
-            historyWindow.close();
-        }
-    });
-    window.addEventListener('message', (event) => {
-        if(event.data.id !== calculator.getState().randomSeed) return;
-
-        if(event.data.type=="readHistory"){
-            window.electron.readFile(path + "/history.json", 'utf8', (err, data)=>{
-                if (err) throw err;
-                const history = JSON.parse(data);
-                historyWindow.postMessage({
-                    history: history,
-                })
-            });
-        }
-
-        if(event.data.type=="renameHistory"){
-            window.electron.readFile(path + `/history.json`, 'utf8', (err, data)=>{
-                if (err) throw err;
-                const history = JSON.parse(data);
-                history[event.data.history].name = event.data.name;
-                window.electron.writeFile(path + "/history.json", JSON.stringify(history), (err)=>{
-                    if(err){
-                        console.log(e)
-                    }else{
-                        console.log("Rename history!"); 
-                        window._name = event.data.name;
-                        reloadHistoryWindow();
-                    }
-                });
-            });
-        }
-
-        if(event.data.type=="openHistory"){
-            window.electron.readFile(path + `/${event.data.history}.json`, 'utf8', (err, data)=>{
-                if (err) throw err;
-                const state = JSON.parse(data);
-                calculator.setState(state);
-                window._name = event.data.name;
-                window._saved = true;
-
-                historyWindow.postMessage({
-                    id: calculator.getState().randomSeed,
-                    historyPath: path,
-                });
-            });
-        }
-
-        if(event.data.type=="deleteHistory"){
-            window.electron.readFile(path + "/history.json", 'utf8', (err, data)=>{
-                if (err) throw err;
-                const history = JSON.parse(data);
-                delete history[event.data.history];
-                window.electron.deleteFile(path + `/${event.data.history}.json`, (err)=>{
-                    if(err){
-                        console.log(err)
-                    }else{
-                        window.electron.writeFile(path + "/history.json", JSON.stringify(history), (err)=>{
-                            if(err){
-                                console.log(e)
-                            }else{
-                                console.log("Delete history!"); 
-                                reloadHistoryWindow();
-                            }
-                        });
-                    }
-                })
-            });
-        }
-    });
-}
-
-
