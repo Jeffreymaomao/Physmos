@@ -27,18 +27,17 @@ window.addEventListener('message', (event) => {
     }
 });
 
-function deleteCallBack(event, name){
-    const check = confirm(`Delete "${name}".`);
-    if(check){
+function deleteCallBack(event, name) {
+    const historyId = event.currentTarget.getAttribute('data-history-id');
+    customPrompt('Delete project?', (confirmed) => {
+        if (!confirmed) return;
         window.opener.postMessage({
-            id: localStorage.getItem("id"),
-            history: event.srcElement.getAttribute('data-history-id'),
+            id: localStorage.getItem('id'),
+            history: historyId,
             type: 'deleteHistory'
         });
-    }
+    }, {confirm: true, message: `Delete “${name}”? This cannot be undone.`});
 }
-
-
 
 window.addEventListener("hashchange", (e)=>{
     const hash = window.location.hash.substring(1);

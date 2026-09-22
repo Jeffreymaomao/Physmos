@@ -11,7 +11,24 @@
         "url": ""
     },
     "build": {
-        "icon": "build/icon.icns"
+        "icon": "build/icon.icns",
+        "files": [
+            "main.js",
+            "package.json",
+            "app/**/*",
+            "!app/js/test/**/*",
+            "!app/memo/**/*",
+            "!app/vendor/desmos/**/*",
+            {
+                "from": "app/vendor/desmos/v1.13",
+                "to": "app/vendor/desmos/v1.13",
+                "filter": [
+                    "calculator.js",
+                    "calculator.css",
+                    "manifest.json"
+                ]
+            }
+        ]
     },
     "scripts": {
         "start": "electron .",
@@ -20,7 +37,16 @@
         "pack": "electron-builder --dir",
         "dist": "electron-builder",
         "dist-mac": "electron-builder --macos",
-        "dist-win": "electron-builder --windows"
+        "dist-win": "electron-builder --windows",
+        "download-desmos": "node scripts/download-desmos.js",
+        "test": "node --test app/js/test/desmos.test.js",
+        "prestart": "node scripts/verify-desmos.js",
+        "prepack": "node scripts/verify-desmos.js",
+        "predist": "node scripts/verify-desmos.js",
+        "predist-mac": "node scripts/verify-desmos.js",
+        "predist-win": "node scripts/verify-desmos.js",
+        "pack:local": "CSC_IDENTITY_AUTO_DISCOVERY=false pnpm run pack --config.electronDist=node_modules/electron/dist",
+        "test:pack": "PHYSMOS_EXECUTABLE=\"$PWD/dist/mac-arm64/Physmos.app/Contents/MacOS/Physmos\" pnpm test"
     },
     "devDependencies": {
         "electron": "^26.2.3",
@@ -29,5 +55,11 @@
         "electron-reloader": "^1.2.3",
         "eslint": "^8.25.0",
         "eslint-config-google": "^0.14.0"
+    },
+    "packageManager": "pnpm@10.17.1",
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "electron"
+        ]
     }
 }

@@ -3,7 +3,7 @@
 // Object: calculator
 // ---------------------------------------------------------------
 
-createSettingButton("dcg-icon-download", saveState);
+createSettingButton('save', saveState);
 initializeSavePath();
 window._name =  "Undefined";
 function initializeSavePath(){
@@ -59,7 +59,8 @@ function saveState(){
         performSave();
     }else{
         customPrompt("Project Name", (name)=>{
-            if (name) {window._name = name;}
+            if (name === null) return;
+            window._name = name;
             performSave();
         });
     }

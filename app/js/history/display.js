@@ -8,7 +8,12 @@ function display(history, parentNode, deleteCallBack=null) {
 	sortedData.forEach(item => {
 	    const listItemNode = document.createElement('li');
 	    const linkItemNode = document.createElement('a');
-	    const deleteBtnNote = document.createElement('div');
+	    const deleteBtnNote = document.createElement('button');
+        deleteBtnNote.type = 'button';
+        deleteBtnNote.setAttribute('aria-label', `Delete ${item.name}`);
+        deleteBtnNote.title = 'Delete project';
+        const deleteIcon = window.createPhysmosIcon('delete');
+        deleteBtnNote.appendChild(deleteIcon);
 
 	    linkItemNode.draggable = false;
 
@@ -38,7 +43,7 @@ function display(history, parentNode, deleteCallBack=null) {
 	    linkItemNode.appendChild(nameContainerNode);
 	    nameContainerNode.appendChild(nameNode);
 
-	    linkItemNode.appendChild(timeNode);
+	    nameContainerNode.appendChild(timeNode);
 	    listItemNode.appendChild(linkItemNode);
 	    listItemNode.appendChild(deleteBtnNote);
 	    listNode.appendChild(listItemNode);
@@ -50,6 +55,12 @@ function display(history, parentNode, deleteCallBack=null) {
 	    linkItemNode.addEventListener("click", clickHistory.bind(linkItemNode, item.id));
 	});
 	parentNode.appendChild(listNode);
+    if (!sortedData.length) {
+        const empty = document.createElement('p');
+        empty.className = 'history-empty';
+        empty.textContent = 'No saved projects yet.';
+        parentNode.appendChild(empty);
+    }
 }
 function clickHistory(historyId, event) {
 

@@ -6,18 +6,18 @@
 
 ## Build, Test, and Development Commands
 
-- `npm ci` installs the exact dependency versions from `package-lock.json`.
-- `npm start` launches the app with module reloading during development.
-- `npm run pack` creates an unpacked application for local inspection.
-- `npm run dist` builds distributable packages for the current platform.
-- `npm run dist-mac` / `npm run dist-win` target macOS or Windows explicitly.
-- `npm run icon` regenerates platform icons from `icon/icon.png`.
+- `pnpm install --frozen-lockfile` installs the exact dependency versions from `pnpm-lock.yaml`.
+- `pnpm start` launches the app with module reloading during development.
+- `pnpm run pack` creates an unpacked application for local inspection.
+- `pnpm run dist` builds distributable packages for the current platform.
+- `pnpm run dist-mac` / `pnpm run dist-win` target macOS or Windows explicitly.
+- `pnpm run icon` regenerates platform icons from `icon/icon.png`.
 
-There is no configured `npm test` or lint script. Do not report automated checks unless the corresponding tooling was run.
+`pnpm test` runs the Electron integration suite; no lint script is configured. Do not report automated checks unless the corresponding tooling was run.
 
 ## Coding Style & Naming Conventions
 
-Use JavaScript with four-space indentation, semicolons, and single quotes. Use `camelCase` for variables/functions, `PascalCase` for classes, and kebab-case for CSS classes. Keep privileged APIs in `main.js` or `app/preload.js`; renderer modules use the preload bridge. Name extensions `feature.plugin.js`. New code should satisfy `npx eslint main.js app/**/*.js` (exclude vendor files).
+Use JavaScript with four-space indentation, semicolons, and single quotes. Use `camelCase` for variables/functions, `PascalCase` for classes, and kebab-case for CSS classes. Keep privileged APIs in `main.js` or `app/preload.js`; renderer modules use the preload bridge. Name extensions `feature.plugin.js`. New code should satisfy `pnpm exec eslint main.js app/**/*.js` (exclude vendor files).
 
 ## Desmos API References
 
@@ -25,7 +25,7 @@ Physmos uses a locally downloaded Desmos API bundle for development and packagin
 
 ## Testing Guidelines
 
-Test examples are under `app/js/test/`, but no runner is configured. Run `npm start` and verify window creation, menu shortcuts, file operations, and console output. New tests should use `*.test.js` in `app/js/test/` and include an `npm test` script.
+The Electron integration suite is `app/js/test/desmos.test.js`; older browser-only examples are excluded from the runner. Run `pnpm start` and verify window creation, menu shortcuts, file operations, and console output. New tests should use `*.test.js` in `app/js/test/` and include an `pnpm test` script.
 
 ## Commit & Pull Request Guidelines
 

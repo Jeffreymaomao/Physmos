@@ -1,0 +1,53 @@
+/* Shared Physmos surfaces, matching the bundled Desmos v1.13 palette. */
+:root {
+    --physmos-font: Arial, Helvetica, sans-serif;
+    --physmos-text: #333;
+    --physmos-muted: #666;
+    --physmos-border: #ccc;
+    --physmos-surface: #fff;
+    --physmos-hover: #f2f2f2;
+    --physmos-blue: #2d70b3;
+    --physmos-radius: 6px;
+    --physmos-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+}
+.physmos-ui { font: 14px/1.4 var(--physmos-font); color: var(--physmos-text); }
+.physmos-ui *, .physmos-ui *::before, .physmos-ui *::after { box-sizing: border-box; }
+.physmos-ui button, .physmos-ui input { font: inherit; }
+.physmos-ui button { cursor: pointer; }
+.physmos-ui button:focus-visible, .physmos-ui a:focus-visible {
+    outline: 2px solid var(--physmos-blue); outline-offset: 2px;
+}
+.physmos-ui input {
+    color: var(--physmos-text); background: var(--physmos-surface);
+    border: 1px solid var(--physmos-border); border-radius: 4px; padding: 8px 10px;
+}
+.physmos-ui input:focus { outline: 2px solid var(--physmos-blue); outline-offset: -1px; }
+.custom-prompt-modal {
+    position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+    background: rgba(0, 0, 0, .35); padding: 24px;
+}
+.custom-prompt-box {
+    width: min(360px, 100%); background: var(--physmos-surface); padding: 24px;
+    border: 1px solid var(--physmos-border); border-radius: var(--physmos-radius);
+    box-shadow: var(--physmos-shadow);
+}
+.custom-prompt-box h2 { margin: 0 0 18px; font-size: 20px; font-weight: 500; }
+.custom-prompt-input { width: 100%; }
+.custom-prompt-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.custom-prompt-button {
+    border: 1px solid var(--physmos-border); border-radius: 4px;
+    padding: 8px 16px; background: var(--physmos-surface); color: var(--physmos-text);
+}
+.custom-prompt-button:hover { background: var(--physmos-hover); }
+.custom-prompt-button.default { background: var(--physmos-blue); color: #fff; border-color: var(--physmos-blue); }
+.custom-prompt-button.default:hover { background: #245a90; }
+
+.physmos-svg-icon {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: -.1em;
+    background-color: currentColor;
+    -webkit-mask: var(--icon-url) center / contain no-repeat;
+    mask: var(--icon-url) center / contain no-repeat;
+}

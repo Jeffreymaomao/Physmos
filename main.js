@@ -4,7 +4,9 @@ const pkg = require('./package.json');
 const util = require('util');
 const fs = require('fs');
 
-try {require('electron-reloader')(module);} catch {}
+if (!app.isPackaged && !process.env.PHYSMOS_TEST) {
+    try { require('electron-reloader')(module); } catch {}
+}
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 

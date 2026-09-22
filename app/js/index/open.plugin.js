@@ -9,7 +9,7 @@ function reloadHistoryWindow(){
     }
 }
 
-createSettingButton("dcg-icon-folder-open", (e)=>{
+createSettingButton('open', (e)=>{
     const path = window.electron.userDataPath;
     window.electron.readDirectory(path).then(files => {
         if(files.includes("save")){
@@ -37,7 +37,7 @@ function openFolder(){
         historyWindow.close();
     }
     const path = window.electron.userDataPath+"/save";
-    historyWindow = window.open("hisory.html", 'history', [
+    historyWindow = window.open("history.html", 'history', [
         "width=400",
         "height=600",
         "x=0",

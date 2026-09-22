@@ -17,111 +17,95 @@ function getCurrentTime() {
     return formattedDateTime;
 }
 
-function createSettingButton(iconClassName=null, eventListener=null) {
-    let settingButtonContainer = document.querySelector(".dcg-settings-view-container");
-
-    if (!settingButtonContainer) {
-        console.error('button container not found!');
-        return;
+function createSettingButton(iconName = null, eventListener = null) {
+    if (!iconName) return;
+    let toolbar = document.querySelector('.physmos-file-toolbar');
+    if (!toolbar) {
+        toolbar = document.createElement('div');
+        toolbar.className = 'physmos-file-toolbar physmos-ui dcg-calculator-api-container-v1_13';
+        toolbar.setAttribute('role', 'toolbar');
+        toolbar.setAttribute('aria-label', 'Project files');
+        document.body.appendChild(toolbar);
     }
-    if(!iconClassName){
-    	console.error('There is no input class name.');
-        return;
-    }
-
-    // Create hit content container
-    let hitContent = document.createElement('div');
-    hitContent.className = "dcg-tooltip-hit-area-container";
-    hitContent.setAttribute("handleevent", "true");
-    settingButtonContainer.appendChild(hitContent);
-
-    // Create save button
-    let button = document.createElement('div');
-    button.className = "dcg-icon-btn dcg-do-blur dcg-btn-flat-gray dcg-settings-pillbox";
-    button.setAttribute("role", "button");
-    button.style.background = "#ededed";
-    hitContent.appendChild(button);
-
-    // Create save icon
-    let icon = document.createElement('i');
-    icon.className = iconClassName;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'physmos-file-button';
+    const label = iconName === 'save' ? 'Save project' : 'Open project';
+    button.title = label;
+    button.setAttribute('aria-label', label);
+    const icon = window.createPhysmosIcon(iconName);
     button.appendChild(icon);
-
-    if (eventListener) {
-        button.addEventListener('click', eventListener);
-    }
+    if (eventListener) button.addEventListener('click', eventListener);
+    toolbar.appendChild(button);
 }
 
-function customPrompt(title, callback) {
-    if(!callback) callback = ()=>{};
-    // 創建彈窗模態框
+function customPrompt(title, callback = () => {}, options = {}) {
+    const previousFocus = document.activeElement;
     const modal = document.createElement('div');
-    modal.classList.add("custom-prompt-modal");
-
-    // 創建彈窗內容盒子
-    const box = document.createElement('div');
-    box.classList.add("custom-prompt-box");
-
-    // 創建標題
-    const p = document.createElement('p');
-    p.textContent = title;
-
-    // 創建輸入框
+    modal.className = 'custom-prompt-modal physmos-ui';
+    const box = document.createElement('form');
+    box.className = 'custom-prompt-box';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-labelledby', 'project-prompt-title');
+    const heading = document.createElement('h2');
+    heading.id = 'project-prompt-title';
+    heading.textContent = title;
     const input = document.createElement('input');
-    input.classList.add("custom-prompt-input");
-    input.type = 'text';
+    input.className = 'custom-prompt-input';
     input.id = 'custom-prompt-input';
-
-    // 創建 OK 按鈕
-    const okButton = document.createElement('button');
-    okButton.classList.add("custom-prompt-button");
-    okButton.classList.add("default");
-    okButton.textContent = 'OK';
-    okButton.addEventListener('click', () => {
-        const value = input.value;
-        modal.style.display = 'none';
+    input.setAttribute('aria-label', title);
+    input.placeholder = 'Untitled project';
+    const actions = document.createElement('div');
+    actions.className = 'custom-prompt-actions';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'custom-prompt-button';
+    cancel.textContent = 'Cancel';
+    const save = document.createElement('button');
+    save.type = 'submit';
+    save.className = 'custom-prompt-button default';
+    save.textContent = options.confirm ? 'Delete' : 'Save';
+    let closed = false;
+    const close = (value) => {
+        if (closed) return;
+        closed = true;
+        modal.remove();
+        previousFocus?.focus();
         callback(value);
-        modal.remove();
+    };
+    cancel.addEventListener('click', () => close(null));
+    box.addEventListener('submit', (event) => {
+        event.preventDefault();
+        close(options.confirm ? true : input.value.trim() || 'Untitled project');
     });
-
-    // 創建 Cancel 按鈕
-    const cancelButton = document.createElement('button');
-    cancelButton.classList.add("custom-prompt-button");
-    cancelButton.textContent = 'Cancel';
-    cancelButton.addEventListener('click', () => {
-        callback(null);
-        modal.remove();
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) close(null);
     });
-
-    // 組裝彈窗內容
-    box.appendChild(p);
-    box.appendChild(input);
-    box.appendChild(cancelButton);
-    box.appendChild(okButton);
-
-    // 組裝模態框
+    modal.addEventListener('keydown', (event) => {
+        event.stopPropagation();
+        if (event.key === 'Escape') close(null);
+        if (event.key === 'Tab') {
+            if (event.shiftKey && document.activeElement === (options.confirm ? cancel : input)) {
+                event.preventDefault();
+                save.focus();
+            } else if (!event.shiftKey && document.activeElement === save) {
+                event.preventDefault();
+                (options.confirm ? cancel : input).focus();
+            }
+        }
+    });
+    actions.append(cancel, save);
+    box.appendChild(heading);
+    if (options.confirm) {
+        const message = document.createElement('p');
+        message.textContent = options.message;
+        box.appendChild(message);
+    } else {
+        box.appendChild(input);
+    }
+    box.appendChild(actions);
     modal.appendChild(box);
-
-    // 顯示彈窗
-    setTimeout(() => {
-        input.focus();
-    }, 0);
-
-    // 處理點擊彈窗外部關閉彈窗
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            callback(null);
-            modal.remove();
-        }
-    });
-    input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            callback(this.value);
-            modal.remove();
-        }
-    });
-
-    // 將彈窗添加到文檔
     document.body.appendChild(modal);
+    (options.confirm ? cancel : input).focus();
 }
-

@@ -11,7 +11,7 @@ var calculator = Desmos.GraphingCalculator(elt, {
 
     fontSize:16,             //字體大小，default: 16 
     border: false,           //邊界
-    action: true,            //ticker, action(->)
+    actions: true,            //ticker, action(->)
 });
 
 calculator.focusFirstExpression();
@@ -59,7 +59,7 @@ window.addEventListener("keydown", (e)=>{
 });
 
 window.electron.on('open-file', (event, ...args) => {
-    console.log("open the file")
+    openFolder();
 });
 
 window.electron.on('save-file', (event, ...args) => {
